@@ -155,6 +155,46 @@ The image encodes its own layout constraints. No CSS box model. No DOM hierarchy
 
 ---
 
+## Scene Compositing and Atmospheric Rendering
+
+The encoding system operates inside a larger rendering architecture that treats the entire page as a unified underwater scene — not a collection of UI components.
+
+### Two-canvas system
+
+**Full-screen background canvas** — the ocean itself. Runs permanently behind all tiles. Renders: caustic light patterns, rising bubble particles, water droplet trails on the screen surface (glass layer at z=0), global bioluminescent ambient light. Driven by a single `u_time` uniform shared across the entire page. The user is always inside the water.
+
+**Per-tile canvases** — the instruments. Each tile is its own WebGL canvas rendered against the global scene. Tiles receive emissive light from the background layer and emit their own — teal data nodes, gold alerts, and red warnings cast light into the water around them via a screen-space radial glow derived directly from encoded pixel luminosity.
+
+### Load-in transition
+
+A `u_load_progress` uniform (0.0→1.0) drives each tile's materialisation as data arrives. At 0.0: dark shape at near-zero opacity, cold colour temperature, high blur — barely visible in the murk. At 1.0: full instrument panel brightness with complete glow and animation. The transition reads as emergence from depth. Instruments coming online. Something surfacing.
+
+```glsl
+uniform float u_load_progress;
+
+// in main():
+float emergence = smoothstep(0.0, 1.0, u_load_progress);
+float coldShift  = 1.0 - emergence * 0.4; // colour temperature warms as it surfaces
+vec3  emerged    = mix(pageBg, displayColor * coldShift, emergence);
+gl_FragColor     = vec4(emerged, emergence);
+```
+
+### Emissive lighting from encoded pixels
+
+Encoded pixel luminosity feeds back into the global light model. The shader already knows which pixels carry high semantic values (bright teal, gold alerts). Those values are passed to the background canvas as a light map — bright chart elements cast a soft radial bloom into the caustic layer behind them. The chart glows, and the water around it responds.
+
+### Typography as mid-ground scene geometry
+
+Page text rendered at a defined z-depth — not as DOM elements sitting above the scene, but as part of it. In the full implementation: text as textured quads in the WebGL depth buffer, receiving emissive light from surrounding encoded pixels, with bubble particles writing to the same depth buffer so they can pass in front of and behind letterforms. Parallax offset is proportional to z-depth, so letters move slightly against the tile layer as the user scrolls or tilts.
+
+Early-phase approximation: CSS 3D perspective transforms for parallax (gives 90% of the feel, builds in minutes). Full occlusion deferred to a later rendering pass.
+
+### Interaction turbulence
+
+Touch events inject a velocity vector into the background canvas particle system. Bubbles scatter from the touch point. Water turbulence ripples outward through the caustic layer. The semantic tile registers its own response (shockwave pulse on structural elements, ripple displacement on atmospheric) while the global scene simultaneously reacts — the instrument and the ocean respond together.
+
+---
+
 ## The Pipeline
 
 ### 1. Image Generation
