@@ -34,6 +34,64 @@ Example: a data point with score 41 on a 0–100 scale:
 
 ---
 
+## Layer Classification Encoding
+
+The reserved channel extends naturally to encode **rendering physics** — not just semantic meaning, but how each pixel should behave under interaction.
+
+  ```
+  R = 252  →  semantic data pixel      G = element_type  B = value (0–255)
+  R = 251  →  layer class pixel        G = physics_class B = intensity
+  R < 248  →  normal display pixel     (shader renders naturally)
+  ```
+
+**Physics classes (`R=251`):**
+
+  | G value | Class | Description |
+  |---|---|---|
+  | 1 | Atmospheric | Caustics, bioluminescence, ambient particles |
+  | 2 | Structural | Chart lines, data points, axes |
+  | 3 | Decorative | Bloom halos, glows around elements |
+
+**Differential interaction response:**
+
+  | Event | Atmospheric (G=1) | Structural (G=2) |
+  |---|---|---|
+  | Touch/tap | Water ripple displacement | Shockwave pulse radiates along chart geometry |
+  | Pinch zoom | Parallax — environment recedes slower than data | Rigid scale — chart geometry anchored |
+  | Scroll velocity | Caustics intensify, particles drift | No response |
+
+  The structural layer remaining rigid during pinch gives natural parallax without a scene graph or depth map — the physics classes
+  *are* the depth model. Drop any conformant image into the renderer and the correct physics apply automatically.
+
+**Extended shader compositor:**
+
+  ```glsl
+  void main() {
+    vec4 px = texture2D(u_image, v_uv);
+
+    if (px.r > 0.985) {
+      // R=252 — semantic data pixel
+      // decode elementType + value, render display color, animate
+    } else if (px.r > 0.976) {
+      // R=251 — layer class pixel
+      float physicsClass = floor(px.g * 255.0 + 0.5);
+      if (physicsClass < 1.5) {
+        // atmospheric — apply ripple displacement, caustic animation
+      } else if (physicsClass < 2.5) {
+        // structural — rigid under zoom, shockwave on touch
+      } else {
+        // decorative — soft response, bloom intensity modulation
+      }
+    } else {
+      // normal pixel — teal glow animation + edge blend
+    }
+  }
+  ```
+
+The image self-describes its rendering physics. No configuration file, no metadata sidecar, no coordinate map. The full architecture encodes three layers simultaneously in every pixel: **display** (what the user sees), **semantics** (what a touch means), and **physics** (how it responds to interaction).
+
+---  
+
 ## The Pipeline
 
 ### 1. Image Generation
