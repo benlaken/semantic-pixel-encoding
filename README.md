@@ -13,7 +13,7 @@ AI-generated images are typically treated as presentation assets — static visu
 
 The image IS the data structure.
 
-![Validation test image — single high-luminance element on pure black](test_circle.png)
+<img src="test_circle.png" width="300" alt="Validation test image — single high-luminance element on pure black">
 *A single high-luminance teal element on pure black — the simplest case for cluster detection and semantic encoding validation.*
 
 ---
