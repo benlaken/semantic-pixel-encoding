@@ -65,7 +65,7 @@ The reserved channel extends naturally to encode **rendering physics** — not j
 
 **Extended shader compositor:**
 
-  ```glsl
+```glsl
   void main() {
     vec4 px = texture2D(u_image, v_uv);
 
@@ -86,7 +86,7 @@ The reserved channel extends naturally to encode **rendering physics** — not j
       // normal pixel — teal glow animation + edge blend
     }
   }
-  ```
+```
 
 The image self-describes its rendering physics. No configuration file, no metadata sidecar, no coordinate map. The full architecture encodes three layers simultaneously in every pixel: **display** (what the user sees), **semantics** (what a touch means), and **physics** (how it responds to interaction).
 
