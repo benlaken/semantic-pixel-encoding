@@ -1,5 +1,5 @@
 # Semantic Pixel Encoding
-A novel architecture for encoding semantic data in AI-generated images, decoded in real-time via WebGL fragment shader for touch interaction. Prior art disclosure 
+A novel architecture for encoding semantic data in AI-generated images, decoded in real-time via WebGL fragment shader for a range of dynamic behaviours and interactions in support of closed loop information systems. Prior art disclosure 
 
 ---
 ## Prior Art Statement
