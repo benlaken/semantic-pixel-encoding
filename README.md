@@ -90,7 +90,70 @@ The reserved channel extends naturally to encode **rendering physics** — not j
 
 The image self-describes its rendering physics. No configuration file, no metadata sidecar, no coordinate map. The full architecture encodes three layers simultaneously in every pixel: **display** (what the user sees), **semantics** (what a touch means), and **physics** (how it responds to interaction).
 
----  
+---
+
+## Zone and Shape Encoding
+
+Individual pixel encoding handles point values and layer classification. A further extension encodes **spatial zones** — contiguous regions that carry interaction rules and physics constraints for everything inside them.
+
+A zone boundary is a closed path of pixels encoded as:
+
+```
+R = 250  →  zone boundary pixel
+G = zone_type
+B = zone_id  (0–255, links interior pixels to their container)
+```
+
+**Zone types (`G` on `R=250`):**
+
+| G value | Zone type | Behaviour |
+|---|---|---|
+| 1 | Data container | Interior structural elements anchor to zone centre and limits on zoom |
+| 2 | Interaction region | Touch anywhere inside fires payload; zone defines the target, not individual pixels |
+| 3 | Physics boundary | Interior atmospheric elements are contained — particles don't cross the boundary |
+
+**Payload triggers**
+
+Any encoded pixel (R=252 semantic, R=251 layer class, R=250 zone boundary) can carry a payload dispatch in the B channel. The frontend maps encoded value to a response type:
+
+```javascript
+const responseMap = {
+  1: 'open_detail_modal',
+  2: 'highlight_related_tile',
+  3: 'animate_subscale',
+  4: 'navigate_to_section',
+};
+
+if (pixel.r >= 250) {
+  const responseType = responseMap[pixel.g];
+  const value = (pixel.b / 255) * domainMax[pixel.g];
+  dispatch({ type: responseType, value, position: { x, y } });
+}
+```
+
+The frontend is event-driven entirely from pixel values. No routing table, no coordinate map, no manually defined interaction zones.
+
+**Interaction limits and snapback**
+
+The B channel on structural pixels (R=251, G=2) encodes the element's maximum deformation factor. A pinch zoom past that factor triggers elastic resistance and snapback — the user feels the limit rather than hitting a hard stop:
+
+```glsl
+float deformLimit = px.b; // 0.0–1.0 — encoded max deformation
+float currentDeform = u_pinchScale - 1.0;
+if (currentDeform > deformLimit) {
+  float overshoot = currentDeform - deformLimit;
+  float snapback = overshoot * 0.3 * sin(u_time * 8.0) * exp(-u_time * 4.0);
+  // apply elastic resistance — structural element pushes back
+}
+```
+
+**Container anchoring**
+
+Zone type 1 (data container) declares that all structural pixels inside it (R=251, G=2) anchor to the zone's centroid and scale within the zone's bounding box. Atmospheric pixels inside the same zone are exempt — they drift and parallax freely within the container boundary. The result: charts scale cleanly while their ambient environment breathes around them.
+
+The image encodes its own layout constraints. No CSS box model. No DOM hierarchy. The geometry is in the pixels.
+
+---
 
 ## The Pipeline
 
