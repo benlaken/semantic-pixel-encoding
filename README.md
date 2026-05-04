@@ -1,12 +1,10 @@
 # semantic-pixel-encoding
 A novel architecture for encoding semantic data in AI-generated images, decoded in real-time via WebGL fragment shader for touch interaction. Prior art disclosure 
 
-— Dr. Benjamin A. Laken, 4th May 2026.
-
 ---
 ## Prior Art Statement
 
-This document constitutes a public disclosure of the semantic pixel encoding architecture described below, establishing priority of invention by Ben Laken on May 4th, 2026.
+This document constitutes a public disclosure of the semantic pixel encoding architecture described below, establishing priority of invention by Dr. Benjamin A. Laken on May 4th, 2026.
 
 ---
 ## The Core Idea
@@ -14,6 +12,9 @@ This document constitutes a public disclosure of the semantic pixel encoding arc
 AI-generated images are typically treated as presentation assets — static visuals sitting beneath a separate interaction layer. This architecture collapses that separation. Every meaningful pixel in the image carries both a visual meaning and a semantic one simultaneously. The user sees the visual. The machine reads the semantic. They never conflict.
 
 The image IS the data structure.
+
+![Validation test image — single high-luminance element on pure black](test_circle.png)
+*A single high-luminance teal element on pure black — the simplest case for cluster detection and semantic encoding validation.*
 
 ---
 
@@ -25,10 +26,10 @@ R = 252   →  encoded pixel marker
 G = 0–255 →  element type identifier
 B = 0–255 →  numeric value (maps linearly to domain range)
 
-Example: an audit data point with score 41 on a 0–100 scale:
+Example: a data point with score 41 on a 0–100 scale:
   RGB(252, 2, 105)
   R=252 → encoded marker
-  G=2   → element type: audit orb #2
+  G=2   → element type: data node, second in series
   B=105 → value: 105/255 × 100 = 41.2
 
 ---
@@ -59,12 +60,12 @@ A script runs cluster detection on the generated image — identifying high-lumi
 
 Each tile is a <canvas> element. The image loads as a WebGL texture. The fragment shader intercepts encoded pixels before display:
 
-  ```
+  ```glsl
   uniform sampler2D u_image;
   uniform float u_time;
   varying vec2 v_uv;
 
-  vec3 dmiRamp(float t) {
+  vec3 valueRamp(float t) {
       vec3 low  = vec3(0.78, 0.18, 0.18); // deep red
       vec3 mid  = vec3(0.82, 0.55, 0.12); // amber
       vec3 high = vec3(0.31, 0.82, 0.78); // teal
@@ -78,7 +79,7 @@ Each tile is a <canvas> element. The image loads as a WebGL texture. The fragmen
       if (px.r > 0.98) {
           // encoded pixel — decode and render
           float value = px.b; // 0.0–1.0
-          vec3 displayColor = dmiRamp(value);
+          vec3 displayColor = valueRamp(value);
 
           // animate intensity based on value
           float breathe = sin(u_time * (0.8 + value * 0.8)) * 0.5 + 0.5;
@@ -105,7 +106,7 @@ Each tile is a <canvas> element. The image loads as a WebGL texture. The fragmen
 
 On touch/click, JavaScript reads the original texture — not the rendered output — at the interaction coordinates:
 
-  ```
+  ```javascript
   function handleInteraction(canvas, glContext, originalTexture, event) {
       const rect = canvas.getBoundingClientRect();
       const x = Math.floor((event.clientX - rect.left)
@@ -136,21 +137,23 @@ No coordinate map. No hitbox JSON. No calibration file. Sub-pixel precision acro
 
 This mechanism operates inside a larger closed-loop system:
 
+  ```
   Personal Knowledge Graph
-           ↓
-  AI Agent Reasoning
-  (knowledge graph + user model + session log)
-           ↓
-  Generative Imagery
-  (encodes knowledge graph state as pixel semantics)
-           ↓
-  WebGL Decoder
-  (renders correct display + enables semantic interaction)
-           ↓
-  Semantic Interaction
-  (touch → meaning → knowledge graph update)
-           ↓  [loop]
-
+             ↓
+     AI Agent Reasoning
+     (knowledge graph + user model + session log)
+             ↓
+     Generative Imagery
+     (encodes knowledge graph state as pixel semantics)
+             ↓
+     WebGL Decoder
+     (renders correct display + enables semantic interaction)
+             ↓
+     Semantic Interaction
+     (touch → meaning → knowledge graph update)
+             ↓
+           [loop]
+  ```
 The AI agent does not personalise content within a fixed layout. It reasons about what to compose — which visualisations exist, which questions surface, which data is foregrounded. The UI composition itself is generated per user per session from a psychometric or knowledge model. Every interaction closes the loop.
 
 ---
@@ -185,7 +188,9 @@ A working proof-of-concept was implemented on May 4, 2026 including:
 - Touch interaction handler reading original texture semantics
 
 Author: Dr. Benjamin A. Laken
+
 Date: May 4, 2026
+
 Location: Tbilisi, Georgia
 
 If you build on this, say where it came from.
