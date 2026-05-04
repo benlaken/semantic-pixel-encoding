@@ -330,6 +330,56 @@ This architecture is domain-agnostic. Any personal knowledge graph can be expres
 The interface paradigm: your data, rendered as a world you inhabit and navigate by touch.
 
 ---
+
+## Spatial Computing Extension — AR/VR/XR
+
+The encoding system extends naturally to stereoscopic 3D and spatial computing without modification to the core scheme. The alpha channel, unused in standard opaque rendering, becomes a depth map.
+
+### Depth encoding in the alpha channel
+
+**Mono + depth (simpler):**
+```
+RGB = visual display layer
+A   = depth value (0 = far, 255 = near)
+```
+
+**Stereo pair (higher precision):**
+```
+Left image:   RGB = left-eye visual    A = coarse depth (0–255, far→near)
+Right image:  RGB = right-eye visual   A = fine depth   (subdivides coarse range)
+```
+
+The stereo pair approach yields effectively 16-bit depth resolution from two 8-bit alpha channels. Stereo disparity already implies depth perceptually — the explicit alpha encoding provides ground truth for occlusion culling, physics layer selection, and spatial interaction.
+
+### SLAM integration
+
+Devices with spatial awareness (Apple Vision Pro, Meta Quest, AR glasses with onboard SLAM) maintain a continuous world mesh. The encoded image declares its relative depth layers via alpha; the device's spatial anchor API handles world placement. The image carries no absolute world coordinates — it is self-describing relative to wherever the device anchors it.
+
+Pipeline:
+```
+Knowledge graph state
+       ↓
+AI generates encoded RGBA image (RGB = display, A = depth)
+       ↓
+Device SLAM provides world anchor point
+       ↓
+Spatial shader decodes: display + depth + semantic + physics layers
+       ↓
+Gaze/touch interaction reads original texture → semantic action → knowledge graph update
+       ↓ [loop]
+```
+
+### Modality-agnostic encoding
+
+The same encoded image renders correctly across display modalities — 2D screen, stereoscopic headset, smart glasses, projected surface. The shader adapts to the target display context; the encoding is unchanged. The image is a universal format for AI-generated spatial UI.
+
+This is the missing layer between AI knowledge systems and spatial computing: a format that carries display, meaning, physics, and depth in a single self-describing package — streamable on demand into any display-capable device.
+
+### Note on stereo image generation
+
+Current AI image generators do not natively produce stereo pairs. Depth-image-based rendering (DIBR) synthesises a stereo pair from a mono image and its depth map. The depth map is already present in the alpha channel of the encoded image, making stereo synthesis a direct downstream step requiring no additional semantic information.
+
+---
 ## Differences from Prior Art
 
 Steganography hides data in low-order bit manipulations for security or watermarking — the goal is concealment from all parties.
